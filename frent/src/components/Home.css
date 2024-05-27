@@ -1,0 +1,22 @@
+.home-container {
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 70px;
+    text-align: center;
+  }
+  .home-container h1 {
+    font-size: 2.5rem;
+    color: rgb(255, 255, 255);
+    margin-bottom: 20px;
+  }
+  .home-container p {
+    color: rgb(255, 255, 255);
+    font-size: 1.2rem;
+  }  
+  body{
+    background-image: url('img2.png');
+    background-size: cover; 
+    background-position: center; 
+    background-repeat: no-repeat; 
+    color: #fff;
+}
