@@ -1,47 +1,87 @@
 const express = require('express');
 const app = express();
-const PORT = 5000;
+const PORT = process.env.PORT || 5000; // Adjust port as needed
 const cors = require('cors');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
 
-let events = [];
+// Load environment variables from .env file
+dotenv.config();
+
+// Connect to MongoDB
+mongoose.connect(process.env.MONGODB_URI, {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+.then(() => {
+  console.log("Connected to MongoDB");
+})
+.catch((err) => {
+  console.error("Error connecting to MongoDB:", err.message);
+});
+
+// Define Schema for Events
+const eventSchema = new mongoose.Schema({
+  id: String,
+  description: String,
+  date: Date
+});
+
+// Create Event model
+const Event = mongoose.model('Event', eventSchema);
+
 app.use(express.json());
 app.use(cors());
-app.get('/events', (req, res) => {
-  res.send({events});
-});
-app.get('/events/:id', (req, res) => {
-  const eventId = req.params.id;
-  const event = events.find(event => event.id === eventId);
-  if (!event) {
-    return res.status(404).json({ message: 'Event not found' });
+
+app.get('/events', async (req, res) => {
+  try {
+    const events = await Event.find();
+    res.json({ events });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
-  res.json(event);
 });
 
-app.post('/events', (req, res) => {
+app.get('/events/:id', async (req, res) => {
+  try {
+    const event = await Event.findById(req.params.id);
+    if (!event) {
+      return res.status(404).json({ message: 'Event not found' });
+    }
+    res.json(event);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+});
+
+app.post('/events', async (req, res) => {
   const { description, date } = req.body;
-  const newEvent = { id: Date.now().toString(), description, date };
-  events.push(newEvent);
-  res.json(newEvent);
-});
-
-app.put('/update/:id', (req, res) => {
-  const eventId = req.params.id;
-  const { title, description, date } = req.body;
-  console.log(date)
-  console.log(eventId)
-  const eventIndex = events.findIndex(event => event.id === eventId);
-  if (eventIndex === -1) {
-    return res.status(404).json({ message: 'Event not found' });
+  const newEvent = new Event({ description, date });
+  try {
+    const savedEvent = await newEvent.save();
+    res.json(savedEvent);
+  } catch (err) {
+    res.status(400).json({ message: err.message });
   }
-  events[eventIndex] = { ...events[eventIndex], title, description, date };
-  res.json(events[eventIndex]);
 });
 
-app.delete('/delete/:id', (req, res) => {
-  const eventId = req.params.id;
-  events = events.filter(event => event.id !== eventId);
-  res.status(204).send();
+app.put('/events/:id', async (req, res) => {
+  const { description, date } = req.body;
+  try {
+    const updatedEvent = await Event.findByIdAndUpdate(req.params.id, { description, date }, { new: true });
+    res.json(updatedEvent);
+  } catch (err) {
+    res.status(404).json({ message: 'Event not found' });
+  }
+});
+
+app.delete('/events/:id', async (req, res) => {
+  try {
+    await Event.findByIdAndDelete(req.params.id);
+    res.status(204).send();
+  } catch (err) {
+    res.status(404).json({ message: 'Event not found' });
+  }
 });
 
 app.listen(PORT, () => {
